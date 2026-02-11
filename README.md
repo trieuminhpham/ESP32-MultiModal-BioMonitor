@@ -1,56 +1,55 @@
 # Multi-modal Vital Signs Monitoring System (ESP32)
 
-![Project Banner](docs/images/banner_setup.jpg)
-*(Chèn ảnh chụp hệ thống thực tế của bạn ở đây)*
+An advanced physiological monitoring system powered by **ESP32**, capable of capturing and synchronizing **ECG, PPG, PCG, and SPG** signals in real-time. The system features a custom **FreeRTOS** architecture for multi-core processing and a Python-based PC tool for live visualization and "pre-trigger" recording.
 
-## Overview
-This project implements a real-time, multi-modal physiological monitoring system using the **ESP32** microcontroller. It captures and synchronizes four distinct vital signs on a unified time axis:
-* **ECG (Electrocardiogram):** Using AD8232.
-* **PPG (Photoplethysmogram):** Using MAX30102 (SpO2/Heart Rate).
-* **PCG (Phonocardiogram):** Using Piezoelectric sensor + ADS1115 (16-bit ADC).
-* **SPG (Speckle Plethysmography):** A novel implementation using the **ADNS3080** optical flow sensor.
+![Project Status](https://img.shields.io/badge/Status-Prototype-orange)
+![Platform](https://img.shields.io/badge/Platform-ESP32-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-The system utilizes **FreeRTOS** for precise task scheduling and multi-sensor synchronization.
+## 📌 Project Overview
+This project explores the correlation between different vital signs by synchronizing them on a unified time axis.
+* **MCU:** ESP32 (Dual-core).
+* **OS:** FreeRTOS.
+* **Key Innovation:** Implementing **Speckle Plethysmography (SPG)** by hacking the ADNS3080 optical flow sensor to dump raw pixel data via SPI.
 
-## Key Features (Kotowari Points)
-* **Novel SPG Measurement:** Hacks the ADNS3080 optical mouse sensor to dump **raw 30x30 pixel arrays** directly from registers via SPI. It calculates average brightness frame-by-frame to detect blood flow variations (Speckle Plethysmography).
-* **High-Precision Synchronization:** Uses FreeRTOS to manage heterogeneous sampling rates (e.g., high-speed audio sampling vs. lower-speed I2C sensors) with minimal latency.
-* **Edge Processing:** Performs signal preprocessing (Averaging, Filtering) directly on the ESP32 before transmission.
+## 🌟 Key Features (Kodawari Points)
+1.  **Hardware-Level Sensor Hack:**
+    * Directly accesses **ADNS3080 registers** via SPI to capture 30x30 raw pixel arrays.
+    * Computes average brightness on-chip to detect blood flow variations (SPG).
+    * Uses custom PWM (40kHz) via `LEDC` to drive the sensor's LED for optimal illumination.
+2.  **Multi-Core Task Scheduling:**
+    * **Core 0 (High Priority):** Dedicated to critical biosignals (ECG via AD8232 & PPG via MAX30102).
+    * **Core 1 (Application):** Handles SPI transactions (ADNS3080), High-res ADC (ADS1115), and Serial/UDP communication to prevent blocking.
+3.  **Smart Data Logging (Python Tool):**
+    * **Circular Buffer:** The PC tool continuously buffers the last **5 seconds** of data in RAM.
+    * **Pre-Trigger Capture:** When you hit "Save", it writes the previous 5 seconds *before* the button press to the CSV file, ensuring no critical events are missed.
+    * **Live Waveforms:** Real-time plotting of ECG, SPG, and PPG signals.
 
-## Hardware Architecture
-| Component | Function | Interface |
-|-----------|----------|-----------|
-| **ESP32** | Main Controller | - |
-| **ADNS3080**| SPG (Blood Flow) | SPI (Custom Driver) |
-| **AD8232** | ECG (Heart Electrical)| Analog |
-| **MAX30102**| PPG (Oxygen/Pulse) | I2C |
-| **Piezo+ADS1115**| PCG (Heart Sound)| I2C (16-bit ADC) |
+## 🔌 Hardware Pinout
+Based on the firmware configuration:
 
-![System Block Diagram](docs/block_diagram.png)
+| Sensor | Interface | ESP32 Pin | Note |
+| :--- | :--- | :--- | :--- |
+| **I2C Bus** | Common | **SDA: 21, SCL: 22** | Shared by MAX30102 & ADS1115 |
+| **ADNS3080** | SPI | **MOSI: 23, MISO: 19, SCK: 18, CS: 17** | RST: 16 |
+| **ADNS LED** | PWM | **GPIO 4** | 40kHz Drive |
+| **AD8232** | Analog | **GPIO 34** (ADC1_CH6) | ECG Output |
+| **ADS1115** | I2C | **Addr: GND** | Connects to Piezo sensor |
 
-## Software Design
-The firmware is built on **FreeRTOS** with the following task distribution:
-1.  **Task_SPG:** High-priority SPI transaction to dump pixel data & compute mean intensity.
-2.  **Task_ECG_PPG:** Reads AD8232 and MAX30102.
-3.  **Task_Audio:** High-frequency sampling for heart sounds via ADS1115.
-4.  **Task_Comms:** Packets data and sends via Serial/UDP to PC.
+## 🏗️ Firmware Architecture (FreeRTOS)
+The system utilizes both cores of the ESP32 to balance high-speed sampling and heavy SPI transactions.
 
-## Results
-**(Chèn ảnh chụp màn hình các đồ thị sóng tín hiệu bạn vẽ trên máy tính)**
-*Figure 1: Synchronized waveforms of ECG, PPG, and SPG.*
+| Task Name | Core | Priority | Function |
+| :--- | :---: | :---: | :--- |
+| `ecg_task` | 0 | 5 | Samples AD8232 ADC at 100Hz. |
+| `max_task` | 0 | 5 | Polling MAX30102 FIFO for Red/IR data. |
+| `adns_task` | 1 | 3 | Captures frame & calculates brightness (Heavy SPI). |
+| `ads_task` | 1 | 3 | Samples Piezo via external 16-bit ADC. |
+| `report_task`| 1 | 2 | Formats CSV string & prints to Serial (50Hz). |
 
-## Getting Started
+## 💻 PC Visualization Tool
+The project includes a Python script (`monitor.py`) for data acquisition.
+
 ### Prerequisites
-* PlatformIO (recommended) or Arduino IDE.
-* ESP32 DevKit V1.
-
-### Installation
-1.  Clone the repo:
-    ```bash
-    git clone [https://github.com/yourusername/ESP32-MultiModal-BioMonitor.git](https://github.com/yourusername/ESP32-MultiModal-BioMonitor.git)
-    ```
-2.  Open in PlatformIO.
-3.  Build and Upload to ESP32.
-
-## License
-[MIT](https://choosealicense.com/licenses/mit/)
+```bash
+pip install pyserial matplotlib
