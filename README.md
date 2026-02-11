@@ -23,6 +23,7 @@ This project explores the correlation between different vital signs by synchroni
 
 ## 🔌 Hardware Pinout
 Based on the firmware configuration:
+<img width="1874" height="1484" alt="image" src="https://github.com/user-attachments/assets/f8598d67-d56a-4a1a-bfcf-5e6114dc4ca5" />
 
 | Sensor | Interface | ESP32 Pin | Note |
 | :--- | :--- | :--- | :--- |
