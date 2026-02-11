@@ -2,17 +2,13 @@
 
 An advanced physiological monitoring system powered by **ESP32**, capable of capturing and synchronizing **ECG, PPG, PCG, and SPG** signals in real-time. The system features a custom **FreeRTOS** architecture for multi-core processing and a Python-based PC tool for live visualization and "pre-trigger" recording.
 
-![Project Status](https://img.shields.io/badge/Status-Prototype-orange)
-![Platform](https://img.shields.io/badge/Platform-ESP32-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-
 ## 📌 Project Overview
 This project explores the correlation between different vital signs by synchronizing them on a unified time axis.
 * **MCU:** ESP32 (Dual-core).
 * **OS:** FreeRTOS.
 * **Key Innovation:** Implementing **Speckle Plethysmography (SPG)** by hacking the ADNS3080 optical flow sensor to dump raw pixel data via SPI.
 
-## 🌟 Key Features (Kodawari Points)
+## 🌟 Key Features
 1.  **Hardware-Level Sensor Hack:**
     * Directly accesses **ADNS3080 registers** via SPI to capture 30x30 raw pixel arrays.
     * Computes average brightness on-chip to detect blood flow variations (SPG).
